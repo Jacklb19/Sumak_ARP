@@ -1,0 +1,272 @@
+# ==========================================
+# SUMAK_ARP - Agente de Reclutamiento
+# ==========================================
+
+# ==========================================
+# BACKEND (Python/LangGraph)
+# ==========================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+backend/venv/
+backend/env/
+backend/ENV/
+backend/.venv/
+backend/.env/
+backend/.venv
+backend/venv
+backend/env
+
+# Environment Variables
+backend/.env
+backend/.env.local
+backend/.env.production
+.env
+.env.local
+.env.*.local
+
+# PyCharm
+.idea/
+*.swp
+*.swo
+*~
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ==========================================
+# FRONTEND (Next.js)
+# ==========================================
+
+# Dependencies
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+
+# Testing
+frontend/coverage
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/build
+frontend/dist
+
+# Production
+frontend/build
+
+# Environment Variables
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/.env*.local
+
+# Vercel
+frontend/.vercel
+
+# Typescript
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# ==========================================
+# DOCKER
+# ==========================================
+
+# Docker
+*.log
+docker-compose.override.yml
+.dockerignore
+
+# ==========================================
+# SUPABASE
+# ==========================================
+
+# Supabase
+.supabase/
+
+# ==========================================
+# N8N
+# ==========================================
+
+# n8n
+n8n/.n8n/
+n8n/database.sqlite
+n8n/.env
+
+# ==========================================
+# DATABASES
+# ==========================================
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# PostgreSQL
+*.dump
+
+# ==========================================
+# LOGS & TEMP FILES
+# ==========================================
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# API KEYS & SECRETS (CRÍTICO)
+# ==========================================
+
+# API Keys
+**/secrets/
+**/credentials/
+**/*_key.json
+**/*_secret.json
+**/service-account*.json
+
+# OpenAI
+openai_key.txt
+*.key
+
+# ==========================================
+# DATOS SENSIBLES
+# ==========================================
+
+# CVs y datos personales
+backend/data/cvs/
+backend/data/candidates/
+frontend/public/uploads/
+*.pdf
+*.docx
+
+# Embeddings cache
+backend/embeddings_cache/
+backend/.cache/
+
+# ==========================================
+# SCRAPED DATA
+# ==========================================
+
+# Apify outputs
+apify_storage/
+dataset_items/
+scraped_data/
+
+# ==========================================
+# SYSTEM FILES
+# ==========================================
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ==========================================
+# IDEs
+# ==========================================
+
+# JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ==========================================
+# TESTING & MONITORING
+# ==========================================
+
+# Test outputs
+test-results/
+playwright-report/
+screenshots/
+
+# Monitoring
+.firebase/
+.vercel/
+
+# ==========================================
+# MISC
+# ==========================================
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Compressed files
+*.zip   
+*.tar.gz
+*.rar
+
+# OS generated files
+.Spotlight-V100
+.Trashes
