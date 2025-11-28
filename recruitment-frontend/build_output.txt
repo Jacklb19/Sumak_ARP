@@ -1,0 +1,30 @@
+
+> recruitment-frontend@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   ▲ Next.js 16.0.5 (Turbopack)
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 4.4s
+   Running TypeScript ...
+   Collecting page data using 15 workers ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Generating static pages using 15 workers (0/3) ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
+Error: supabaseUrl is required.
+    at <unknown> (C:\Users\areva\OneDrive\Documentos\Hackathon\Sumak_ARP\recruitment-frontend\.next\server\chunks\ssr\_8ad04131._.js:37:44071)
+    at new a (C:\Users\areva\OneDrive\Documentos\Hackathon\Sumak_ARP\recruitment-frontend\.next\server\chunks\ssr\_8ad04131._.js:37:44322)
+    at module evaluation (C:\Users\areva\OneDrive\Documentos\Hackathon\Sumak_ARP\recruitment-frontend\.next\server\chunks\ssr\_8ad04131._.js:37:43930)
+    at instantiateModule (C:\Users\areva\OneDrive\Documentos\Hackathon\Sumak_ARP\recruitment-frontend\.next\server\chunks\ssr\[turbopack]_runtime.js:715:9)
+    at getOrInstantiateModuleFromParent (C:\Users\areva\OneDrive\Documentos\Hackathon\Sumak_ARP\recruitment-frontend\.next\server\chunks\ssr\[turbopack]_runtime.js:738:12)
+    at Context.commonJsRequire [as r] (C:\Users\areva\OneDrive\Documentos\Hackathon\Sumak_ARP\recruitment-frontend\.next\server\chunks\ssr\[turbopack]_runtime.js:249:12) {
+  digest: '3233533312'
+}
+Export encountered an error on /page: /, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null
