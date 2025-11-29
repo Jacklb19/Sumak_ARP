@@ -10,8 +10,24 @@ class MessageDict(BaseModel):
     role: str = Field(..., pattern="^(agent|candidate)$")
     content: str = Field(..., min_length=1)
     timestamp: str
-    category: Optional[str] = Field(None, pattern="^(knockout|technical|soft_skills|closing)$")
+    category: Optional[str] = Field(
+        None,
+        pattern="^(knockout|technical|soft_skills|closing)$"
+    )
     order_index: Optional[int] = Field(None, ge=0)
+
+
+class JobContext(BaseModel):
+    """Job metadata needed by the graph."""
+    title: str
+    knockout_criteria: List[str] = Field(default_factory=list)
+
+
+class MaxQuestionsPerPhase(BaseModel):
+    """Max questions per interview phase."""
+    knockout: int = 1
+    technical: int = 3
+    soft_skills: int = 2
 
 
 class InterviewStateInput(BaseModel):
@@ -28,6 +44,11 @@ class InterviewStateInput(BaseModel):
     knockout_scores: List[Dict] = Field(default_factory=list)
     technical_scores: List[Dict] = Field(default_factory=list)
     soft_skills_scores: List[Dict] = Field(default_factory=list)
+
+    # 🔹 Campos nuevos requeridos por los nodos
+    job_context: JobContext
+    max_questions_per_phase: MaxQuestionsPerPhase
+    rejection_reason: Optional[str] = None
 
 
 class InterviewStepRequest(BaseModel):

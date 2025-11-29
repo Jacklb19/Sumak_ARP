@@ -1,24 +1,25 @@
 {
-  "company_id": "79cad9b6-e230-486e-b899-78fd951d9011",
-  "title": "Desarrollador Backend Python",
-  "description": "Crear APIs REST con FastAPI y Supabase",
-  "area": "Backend",
+  "company_id": "bd421586-64d4-4a3d-ab2e-dcf587ff2d3a",
+  "title": "Desarrollador Unity Game Dev (FPS/Zombie)",
+  "description": "Desarrollar FPS zombie games con Unity C#. AI enemigos, animaciones, optimización rendimiento, integración multiplayer opcional.",
+  "area": "Game Development",
   "contract_type": "indefinido",
-  "salary_min": 5000000,
-  "salary_max": 7000000,
+  "salary_min": 4500000,
+  "salary_max": 6500000,
   "modality": "remoto",
   "location": "Colombia",
   "required_skills": {
-    "must_have": ["Python", "FastAPI", "SQL"]
+    "must_have": ["Unity", "C#", "Game Development"]
   },
   "nice_to_have_skills": {
-    "nice_to_have": ["Docker", "AWS"]
+    "nice_to_have": ["AI Pathfinding", "Multiplayer", "Shader Graph"]
   },
   "custom_questions": [
-    "¿Experiencia con Supabase?",
-    "¿Qué frameworks usas?"
+    "¿Experiencia con FPS/zombie games?",
+    "¿Proyectos Unity publicados?",
+    "Describe tu workflow Git/Unity"
   ],
   "knockout_criteria": {
-    "rules": ["Mínimo 2 años experiencia Python"]
+    "rules": ["Mínimo 1 año Unity C#", "Portfolio juegos visibles"]
   }
 }

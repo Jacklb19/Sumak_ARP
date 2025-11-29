@@ -58,7 +58,7 @@ async def health():
         environment=settings.environment,
         version="1.0.0"
     )
-
+import traceback
 
 @app.post(
     "/interview-step",
@@ -94,39 +94,44 @@ async def interview_step(request: InterviewStepRequest) -> InterviewStepResponse
             "interview_step_started",
             application_id=request.application_id,
             current_phase=request.interview_state.current_phase,
-            has_message=bool(request.candidate_message)
+            has_message=bool(request.candidate_message),
         )
-        
-        # Build InterviewState from request
+
         state = _build_state_from_request(request)
-        
-        # Execute graph
+
+        logger.info(
+            "debug_state_before_invoke",
+            application_id=state.get("application_id"),
+            keys=list(state.keys()),
+            current_phase=state.get("current_phase"),
+            should_continue=state.get("should_continue"),
+        )
+
         result = interview_graph.invoke(state)
-        
-        # Extract response data
+
         response = _build_response_from_state(result)
-        
+
         logger.info(
             "interview_step_completed",
             application_id=request.application_id,
             phase=response.phase,
             score=response.score,
-            should_continue=response.should_continue
+            should_continue=response.should_continue,
         )
-        
+
         return response
-    
+
     except Exception as e:
         logger.error(
             "interview_step_failed",
             application_id=request.application_id,
             error=str(e),
-            error_type=type(e).__name__
+            error_type=type(e).__name__,
+            traceback=traceback.format_exc(),
         )
-        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Interview step processing failed: {str(e)}"
+            detail=f"Interview step processing failed: {str(e)}",
         )
 
 
@@ -158,16 +163,25 @@ def _build_state_from_request(request: InterviewStepRequest) -> InterviewState:
         "application_id": request.application_id,
         "job_posting_id": state_input.job_posting_id,
         "candidate_id": state_input.candidate_id,
-        "current_phase": state_input.current_phase,
-        "completed_phases": state_input.completed_phases,
+        "current_phase": state_input.current_phase or "knockout",
+        "completed_phases": state_input.completed_phases or [],
         "messages": messages,
-        "candidate_message": request.candidate_message,
-        "knockout_scores": state_input.knockout_scores,
-        "technical_scores": state_input.technical_scores,
-        "soft_skills_scores": state_input.soft_skills_scores,
+        "candidate_message": request.candidate_message or "",
+        "knockout_scores": state_input.knockout_scores or [],
+        "technical_scores": state_input.technical_scores or [],
+        "soft_skills_scores": state_input.soft_skills_scores or [],
         "should_continue": True,
-        "next_question": ""
+        "next_question": "",
+        "phase_counter": state_input.phase_counter or {
+            "knockout": 0,
+            "technical": 0,
+            "soft_skills": 0,
+        },
+        "job_context": state_input.job_context,
+        "max_questions_per_phase": state_input.max_questions_per_phase,
+        "rejection_reason": state_input.rejection_reason,
     }
+
     
     # Add phase_counter if provided
     if state_input.phase_counter:

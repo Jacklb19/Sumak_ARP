@@ -4,10 +4,7 @@ from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 class Settings(BaseSettings):
-    """Application configuration settings."""
-
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -23,11 +20,19 @@ class Settings(BaseSettings):
         description="Environment"
     )
 
-    # Google Gemini Configuration (CORREGIDO)
-    google_api_key: str = Field(..., description="Google AI Studio API key")
+    # LLM Provider Selection
+    llm_provider: Literal["gemini", "groq"] = Field(default="groq", description="LLM provider")
+
+    # Google Gemini Configuration
+    google_api_key: str = Field(default="", description="Google AI Studio API key")
     gemini_model: str = Field(default="gemini-2.0-flash", description="Gemini model")
     gemini_temperature: float = Field(default=0.3, ge=0.0, le=2.0, description="Temperature")
     gemini_max_tokens: int = Field(default=500, ge=1, le=8000, description="Max output tokens")
+
+    # GROQ Configuration (NUEVO)
+    groq_api_key: str = Field(..., description="Groq API key")
+    groq_model: str = Field(default="llama-3.3-70b-versatile", description="Groq model")
+    groq_temperature: float = Field(default=0.1, ge=0.0, le=2.0, description="Groq temperature")
 
     # Supabase Configuration
     supabase_url: str = Field(..., description="Supabase URL")
@@ -62,6 +67,5 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         """Check if running in production."""
         return self.environment == "production"
-
 
 settings = Settings()

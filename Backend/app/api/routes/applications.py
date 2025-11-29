@@ -110,14 +110,23 @@ async def create_application(
 
         # 4. Crear application
         print("DEBUG: inserting application")
-        app_response = client.table("applications").insert({
-            "candidate_id": candidate_id,
-            "job_posting_id": job_posting_id,
-            "company_id": company_id,
-            "status": "pending",
-            "cv_file_url": f"cvs/{candidate_id}/{job_posting_id}.pdf"
-        }).execute()
-        print("DEBUG app_response.data:", app_response.data)
+        try:
+            app_response = client.table("applications").insert({
+                "candidate_id": candidate_id,
+                "job_posting_id": job_posting_id,
+                "company_id": company_id,
+                "status": "pending",
+                "cv_file_url": f"cvs/{candidate_id}/{job_posting_id}.pdf"
+            }).execute()
+        except Exception as e:
+            # detectar duplicate key
+            if "unique_application" in str(e) or "23505" in str(e):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Ya existe una postulación para esta vacante con este candidato"
+                )
+            raise
+
 
         if not app_response.data:
             raise HTTPException(

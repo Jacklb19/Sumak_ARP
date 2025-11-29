@@ -10,12 +10,12 @@ from nodes import (
     evaluate_technical_response,
     soft_skills_phase,
     evaluate_soft_skills_response,
-    closing_phase
+    closing_phase,
 )
 from graph.routing import (
     should_continue_interview,
     route_after_initialization,
-    route_after_evaluation
+    route_after_evaluation,
 )
 from utils.logger import get_logger
 
@@ -25,27 +25,10 @@ logger = get_logger(__name__)
 def create_interview_graph() -> StateGraph:
     """
     Create and compile the interview graph.
-    
-    Graph structure:
-    
-    initialize
-        ↓
-    knockout ⟷ evaluate_knockout
-        ↓
-    technical ⟷ evaluate_technical
-        ↓
-    soft_skills ⟷ evaluate_soft_skills
-        ↓
-    closing → END
-    
-    Returns:
-        Compiled StateGraph
     """
-    
-    # Create graph
     graph = StateGraph(InterviewState)
-    
-    # Add nodes
+
+    # Nodes
     graph.add_node("initialize", initialize_interview)
     graph.add_node("knockout", knockout_phase)
     graph.add_node("evaluate_knockout", evaluate_knockout_response)
@@ -54,92 +37,90 @@ def create_interview_graph() -> StateGraph:
     graph.add_node("soft_skills", soft_skills_phase)
     graph.add_node("evaluate_soft_skills", evaluate_soft_skills_response)
     graph.add_node("closing", closing_phase)
-    
-    # Set entry point
+
+    # Entry
     graph.set_entry_point("initialize")
-    
-    # Add edges
-    
-    # After initialization, always go to knockout
+
+    # After initialization
     graph.add_conditional_edges(
         "initialize",
         route_after_initialization,
         {
-            "knockout": "knockout"
-        }
+            "to_knockout": "knockout",
+        },
     )
-    
-    # Knockout phase routing
+
+    # Knockout phase
     graph.add_conditional_edges(
         "knockout",
         should_continue_interview,
         {
-            "knockout": "knockout",
-            "evaluate_knockout": "evaluate_knockout",
-            "closing": "closing"
-        }
+            "stay_knockout": "knockout",
+            "to_eval_knockout": "evaluate_knockout",
+            "to_closing": "closing",
+        },
     )
-    
+
     graph.add_conditional_edges(
         "evaluate_knockout",
         should_continue_interview,
         {
-            "knockout": "knockout",
-            "technical": "technical",
-            "closing": "closing"
-        }
+            "stay_knockout": "knockout",
+            "to_eval_knockout": "evaluate_knockout",
+            "to_closing": "closing",
+            "stay_technical": "technical",
+            "to_eval_technical": "evaluate_technical",
+        },
     )
-    
-    # Technical phase routing
+
+    # Technical phase
     graph.add_conditional_edges(
         "technical",
         should_continue_interview,
         {
-            "technical": "technical",
-            "evaluate_technical": "evaluate_technical",
-            "closing": "closing"
-        }
+            "stay_technical": "technical",
+            "to_eval_technical": "evaluate_technical",
+            "to_closing": "closing",
+        },
     )
-    
+
     graph.add_conditional_edges(
         "evaluate_technical",
         should_continue_interview,
         {
-            "technical": "technical",
-            "soft_skills": "soft_skills",
-            "closing": "closing"
-        }
+            "stay_technical": "technical",
+            "stay_soft_skills": "soft_skills",
+            "to_eval_soft_skills": "evaluate_soft_skills",
+            "to_closing": "closing",
+        },
     )
-    
-    # Soft skills phase routing
+
+    # Soft skills phase
     graph.add_conditional_edges(
         "soft_skills",
         should_continue_interview,
         {
-            "soft_skills": "soft_skills",
-            "evaluate_soft_skills": "evaluate_soft_skills",
-            "closing": "closing"
-        }
+            "stay_soft_skills": "soft_skills",
+            "to_eval_soft_skills": "evaluate_soft_skills",
+            "to_closing": "closing",
+        },
     )
-    
+
     graph.add_conditional_edges(
         "evaluate_soft_skills",
         should_continue_interview,
         {
-            "soft_skills": "soft_skills",
-            "closing": "closing"
-        }
+            "stay_soft_skills": "soft_skills",
+            "to_closing": "closing",
+        },
     )
-    
-    # Closing always ends
+
+    # Closing → END
     graph.add_edge("closing", END)
-    
+
     logger.info("interview_graph_created")
-    
     return graph
 
 
-# Create singleton instance
 interview_graph = create_interview_graph().compile()
-
 logger.info("interview_graph_compiled")

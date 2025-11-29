@@ -77,14 +77,23 @@ def evaluate_knockout_response(state: InterviewState) -> InterviewState:
         
         # Check for auto-rejection
         if evaluation.get("auto_reject", False):
-            logger.warning(
-                "candidate_auto_rejected",
-                application_id=state.get("application_id"),
-                reason=evaluation.get("explanation")
-            )
-            state["should_continue"] = False
-            state["current_phase"] = "closing"
-            state["rejection_reason"] = f"Knockout: {evaluation.get('explanation')}"
+            # Política: no auto-rechazar en la primera pregunta knockout
+            if state["phase_counter"]["knockout"] <= 1:
+                logger.info(
+                    "knockout_auto_reject_ignored_first_question",
+                    application_id=state.get("application_id"),
+                    explanation=evaluation.get("explanation"),
+                )
+                state["current_phase"] = "knockout"
+            else:
+                logger.warning(
+                    "candidate_auto_rejected",
+                    application_id=state.get("application_id"),
+                    reason=evaluation.get("explanation"),
+                )
+                state["should_continue"] = False
+                state["current_phase"] = "closing"
+                state["rejection_reason"] = f"Knockout: {evaluation.get('explanation')}"
             return state
         
         # Check if knockout phase is complete
