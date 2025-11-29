@@ -33,6 +33,7 @@ class TokenResponse(BaseModel):
     token: str
     company_id: str
     user_role: str = "admin"
+    message: Optional[str] = None
 
 
 # ============================================================

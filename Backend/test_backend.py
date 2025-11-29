@@ -152,8 +152,6 @@ def test_supabase_connection():
     except Exception as e:
         print_test("Supabase Connection", False, str(e))
         return False
-
-
 def test_register_company():
     """TEST 4: Register company"""
     try:
@@ -167,6 +165,15 @@ def test_register_company():
         }
         
         response = requests.post(f"{API_V1}/auth/register-company", json=payload)
+        
+        # ✅ AGREGA ESTO PARA VER EL ERROR
+        if response.status_code != 200:
+            try:
+                error_detail = response.json()
+                print(f"\n{Color.RED}Error response: {json.dumps(error_detail, indent=2)}{Color.END}")
+            except:
+                print(f"\n{Color.RED}Error text: {response.text}{Color.END}")
+        
         passed = response.status_code == 200
         
         if passed:
@@ -244,7 +251,6 @@ def test_update_company():
         print_test("Update Company", False, str(e))
         return False
 
-
 def test_create_job_posting():
     """TEST 8: Create job posting (Groq generates context)"""
     if not state["token"] or not state["company_id"]:
@@ -274,6 +280,20 @@ def test_create_job_posting():
             timeout=15  # Groq puede tardar
         )
         
+        # ✅ DEBUG COMPLETO
+        if response.status_code != 200:
+            print(f"\n{Color.RED}=== ERROR DEBUG ==={Color.END}")
+            print(f"{Color.YELLOW}Status Code:{Color.END} {response.status_code}")
+            print(f"{Color.YELLOW}Response Headers:{Color.END} {dict(response.headers)}")
+            try:
+                error_json = response.json()
+                print(f"{Color.YELLOW}Response JSON:{Color.END}")
+                print(json.dumps(error_json, indent=2))
+            except:
+                print(f"{Color.YELLOW}Response Text:{Color.END}")
+                print(response.text)
+            print(f"{Color.RED}=================={Color.END}\n")
+        
         passed = response.status_code == 200
         
         if passed:
@@ -285,7 +305,11 @@ def test_create_job_posting():
         return passed
     except Exception as e:
         print_test("Create Job Posting (with Groq context)", False, str(e))
+        import traceback
+        print(f"\n{Color.RED}Exception Traceback:{Color.END}")
+        traceback.print_exc()
         return False
+
 
 
 def test_list_job_postings():

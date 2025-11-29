@@ -2,12 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
+
 # Crear app
 app = FastAPI(
     title="Tech Recruiter Backend - Rol 1",
     description="API Backend para agente de reclutamiento inteligente",
     version="1.0.0"
 )
+
 
 # CORS Middleware
 app.add_middleware(
@@ -17,6 +19,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ============================================================
 # HEALTH CHECK
@@ -30,41 +33,30 @@ async def health_check():
         "version": "1.0.0"
     }
 
+
 # ============================================================
-# IMPORTAR RUTAS
+# IMPORTAR RUTAS (forma explícita)
 # ============================================================
 
-# Auth routes
-from app.api.routes import auth
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
+from app.api.routes.auth import router as auth_router
+from app.api.routes.companies import router as companies_router
+from app.api.routes.jobs import router as jobs_router
+from app.api.routes.applications import router as applications_router
+from app.api.routes.scoring import router as scoring_router
+from app.api.routes.webhooks import router as webhooks_router
+from app.api.routes.chat import router as chat_router
+from app.api.routes.onboarding import router as onboarding_router
 
-# Company routes
-from app.api.routes import companies
-app.include_router(companies.router, prefix="/api/v1/companies", tags=["Companies"])
+# Registrar routers
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
+app.include_router(companies_router, prefix="/api/v1/companies", tags=["Companies"])
+app.include_router(jobs_router, prefix="/api/v1/job-postings", tags=["Job Postings"])
+app.include_router(applications_router, prefix="/api/v1/applications", tags=["Applications"])
+app.include_router(scoring_router, prefix="/api/v1/scoring", tags=["Scoring"])
+app.include_router(webhooks_router, prefix="/api/v1/webhooks", tags=["Webhooks"])
+app.include_router(chat_router, prefix="/api/v1/agent", tags=["Agent Chat"])
+app.include_router(onboarding_router, prefix="/api/v1/onboarding", tags=["Onboarding"])
 
-# Job Postings routes
-from app.api.routes import jobs
-app.include_router(jobs.router, prefix="/api/v1/job-postings", tags=["Job Postings"])
-
-# Applications routes
-from app.api.routes import applications
-app.include_router(applications.router, prefix="/api/v1/applications", tags=["Applications"])
-
-# Scoring routes
-from app.api.routes import scoring
-app.include_router(scoring.router, prefix="/api/v1/scoring", tags=["Scoring"])
-
-# Webhooks routes
-from app.api.routes import webhooks
-app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
-
-# Chat Agent routes
-from app.api.routes import chat
-app.include_router(chat.router, prefix="/api/v1/agent", tags=["Agent Chat"])
-
-# Onboarding routes
-from app.api.routes import onboarding
-app.include_router(onboarding.router, prefix="/api/v1/onboarding", tags=["Onboarding"])
 
 # ============================================================
 # ROOT
@@ -79,6 +71,7 @@ async def root():
         "docs": "/docs",
         "openapi": "/openapi.json"
     }
+
 
 if __name__ == "__main__":
     import uvicorn

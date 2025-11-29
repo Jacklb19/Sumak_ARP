@@ -9,7 +9,7 @@ class LLMService:
 
     def __init__(self):
         self.client = Groq(api_key=settings.GROQ_API_KEY)
-        self.model = "llama-3.3-70b-specdec"  # Modelo recomendado
+        self.model = settings.GROQ_MODEL  # Modelo recomendado
 
     async def analyze_cv_vs_job(
         self,

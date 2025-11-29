@@ -1,136 +1,123 @@
+from fastapi import HTTPException, status
 from app.core.supabase_client import SupabaseClient
 from app.core.security import hash_password, verify_password, create_access_token
-from app.models.schemas import RegisterCompanyRequest, LoginRequest
-from fastapi import HTTPException, status
-from typing import Dict, Any, Tuple
+from app.core.config import settings
+from app.models.schemas import RegisterCompanyRequest, LoginRequest, TokenResponse
+from datetime import timedelta
 
 
 class AuthService:
     """Servicio de autenticación"""
-
-    @staticmethod
-    async def register_company(data: RegisterCompanyRequest) -> Dict[str, Any]:
-        """
-        Registrar nueva empresa
-        
-        Según PARTE 3.2 del MD:
-        1. Validar email único
-        2. Crear user en Supabase Auth
-        3. Insertar en tabla companies
-        4. Retornar token + company_id
-        """
-        client = SupabaseClient.get_client()
-        
-        # 1. Validar que email no exista
+    
+    def __init__(self):
+        # Cliente normal para operaciones de lectura
+        self.supabase = SupabaseClient.get_client(use_service_role=False)
+        # Cliente admin para operaciones de escritura (bypass RLS)
+        self.admin_supabase = SupabaseClient.get_client(use_service_role=True)
+    
+    async def register_company(self, request: RegisterCompanyRequest) -> TokenResponse:
+        """Registrar nueva empresa"""
         try:
-            response = client.table("companies").select("id").eq("email", data.email).execute()
-            if response.data and len(response.data) > 0:
+            # 1. Verificar si email ya existe (con cliente normal)
+            existing = self.supabase.table("companies").select("id").eq("email", request.email).execute()
+            
+            if existing.data:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Email already registered"
                 )
-        except Exception as e:
-            if "Email already registered" not in str(e):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Error checking email"
-                )
-        
-        # 2. Crear user en Supabase Auth (usando email/password)
-        try:
-            hashed_password = hash_password(data.password)
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Error hashing password"
-            )
-        
-        # 3. Insertar en tabla companies
-        try:
-            company_data = {
-                "name": data.company_name,
-                "email": data.email,
-                "sector": data.sector,
-                "size": data.size,
-                "country": data.country,
-            }
-            response = client.table("companies").insert(company_data).execute()
             
-            if not response.data or len(response.data) == 0:
+            # 2. Hash password
+            password_hash = hash_password(request.password)
+            
+            # 3. Crear empresa en Supabase (✅ CON CLIENTE ADMIN para bypass RLS)
+            result = self.admin_supabase.table("companies").insert({
+                "name": request.company_name,
+                "email": request.email,
+                "sector": request.sector,
+                "size": request.size,
+                "country": request.country,
+                "password_hash": password_hash
+            }).execute()
+            
+            if not result.data:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Error creating company"
+                    detail="Failed to create company"
                 )
             
-            company_id = response.data[0]["id"]
+            company = result.data[0]
             
+            # 4. Generar JWT token
+            token_data = {
+                "sub": company["id"],
+                "email": company["email"],
+                "role": "company_admin"
+            }
+            token = create_access_token(
+                data=token_data,
+                expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+            )
+            
+            return TokenResponse(
+                success=True,
+                token=token,
+                company_id=company["id"],
+                message="Company registered successfully"
+            )
+            
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error creating company: {str(e)}"
+                detail=f"Registration error: {str(e)}"
             )
-        
-        # 4. Crear token JWT
-        token = create_access_token(
-            data={"sub": company_id, "email": data.email}
-        )
-        
-        return {
-            "success": True,
-            "company_id": company_id,
-            "token": token,
-            "message": "Company registered successfully"
-        }
-
-    @staticmethod
-    async def login(data: LoginRequest) -> Dict[str, Any]:
-        """
-        Login de empresa
-        
-        Según PARTE 3.2 del MD:
-        1. Buscar empresa por email
-        2. Verificar contraseña
-        3. Generar token
-        4. Retornar token + company_id
-        """
-        client = SupabaseClient.get_client()
-        
-        # 1. Buscar empresa
+    
+    async def login(self, request: LoginRequest) -> TokenResponse:
+        """Login de empresa"""
         try:
-            response = client.table("companies").select("*").eq("email", data.email).execute()
+            # 1. Buscar empresa por email (usa cliente admin para ver password_hash)
+            result = self.admin_supabase.table("companies").select("*").eq("email", request.email).execute()
             
-            if not response.data or len(response.data) == 0:
+            if not result.data:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid credentials"
                 )
             
-            company = response.data[0]
+            company = result.data[0]
             
+            # 2. Verificar password
+            password_hash = company.get("password_hash", "")
+            if not password_hash or not verify_password(request.password, password_hash):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid credentials"
+                )
+            
+            # 3. Generar JWT token
+            token_data = {
+                "sub": company["id"],
+                "email": company["email"],
+                "role": "company_admin"
+            }
+            token = create_access_token(
+                data=token_data,
+                expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+            )
+            
+            return TokenResponse(
+                success=True,
+                token=token,
+                company_id=company["id"],
+                message="Login successful"
+            )
+            
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Login error"
             )
-        
-        # 2. Verificar contraseña (en real: usar Supabase Auth)
-        # Por ahora, simplificado. En producción, usar Supabase Auth
-        
-        # 3. Generar token
-        token = create_access_token(
-            data={"sub": company["id"], "email": company["email"]}
-        )
-        
-        return {
-            "success": True,
-            "token": token,
-            "company_id": company["id"],
-            "user_role": "admin"
-        }
-
-    @staticmethod
-    def verify_company_ownership(company_id: str, user_id: str) -> bool:
-        """
-        Verificar que el usuario sea dueño de la empresa
-        """
-        return company_id == user_id

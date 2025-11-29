@@ -32,7 +32,7 @@ async def create_job_posting(
             detail="Not authorized"
         )
     
-    client = SupabaseClient.get_client()
+    client = SupabaseClient.get_client(use_service_role=True)
     
     try:
         # 1. Generar contexto con LLM
@@ -93,7 +93,7 @@ async def get_job_posting(job_id: str):
     """
     Obtener detalle de vacante (PARTE 3.2 - GET /job-postings/:id)
     """
-    client = SupabaseClient.get_client()
+    client = SupabaseClient.get_client(use_service_role=True)
     
     try:
         response = client.table("job_postings").select("*").eq("id", job_id).execute()
@@ -130,7 +130,7 @@ async def list_job_postings(
     
     Filtros: status, company_id, area, modality, location
     """
-    client = SupabaseClient.get_client()
+    client = SupabaseClient.get_client(use_service_role=True)
     
     try:
         query = client.table("job_postings").select("*")
@@ -183,7 +183,7 @@ async def publish_job_posting(
     
     Cambiar status de 'draft' a 'published'
     """
-    client = SupabaseClient.get_client()
+    client = SupabaseClient.get_client(use_service_role=True)
     
     try:
         # 1. Verificar que existe y pertenece al usuario
@@ -246,7 +246,7 @@ async def get_company_jobs(
             detail="Not authorized"
         )
     
-    client = SupabaseClient.get_client()
+    client = SupabaseClient.get_client(use_service_role=True)
     
     try:
         response = client.table("job_postings").select("*").eq("company_id", company_id).execute()

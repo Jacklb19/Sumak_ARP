@@ -1,7 +1,6 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException
 from app.models.schemas import InterviewStepRequest, InterviewStepResponse
 from app.core.supabase_client import SupabaseClient
-from typing import Dict, Any
 from datetime import datetime
 
 router = APIRouter()
@@ -10,14 +9,11 @@ router = APIRouter()
 @router.post("/interview-step", response_model=InterviewStepResponse)
 async def webhook_interview_step(request: InterviewStepRequest):
     """
-    Recibir respuesta de candidato (PARTE 3.2 - POST /webhook/interview-step)
-    
-    Llamado por n8n cuando candidato responde en WhatsApp
+    Webhook para n8n - guarda mensaje del candidato.
     """
-    client = SupabaseClient.get_client()
-    
+    client = SupabaseClient.get_client(use_service_role=True)
+
     try:
-        # Guardar mensaje
         message_data = {
             "application_id": request.application_id,
             "sender": "candidate",
@@ -27,22 +23,22 @@ async def webhook_interview_step(request: InterviewStepRequest):
             "order_index": len(request.interview_state.get("conversation_history", [])) + 1,
             "timestamp": datetime.utcnow().isoformat()
         }
-        
+
         response = client.table("interview_messages").insert(message_data).execute()
-        
+
         if not response.data:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=500,
                 detail="Error saving message"
             )
-        
-        return {
-            "success": True,
-            "message": "Message saved. LangGraph will process."
-        }
-        
+
+        return InterviewStepResponse(
+            success=True,
+            message="Message saved. LangGraph will process."
+        )
+
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=str(e)
         )

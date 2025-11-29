@@ -1,63 +1,75 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from app.models.schemas import CompanyResponse, UpdateCompanyRequest, SuccessResponse
-from app.core.security import get_current_user
+from app.models.schemas import CompanyResponse, UpdateCompanyRequest
 from app.core.supabase_client import SupabaseClient
-from typing import Dict, Any
+from app.core.security import get_current_user
 
 router = APIRouter()
 
 
 @router.get("/{company_id}", response_model=CompanyResponse)
-async def get_company(company_id: str, current_user: Dict[str, Any] = Depends(get_current_user)):
+async def get_company(company_id: str, current_user: dict = Depends(get_current_user)):
     """
-    Obtener datos de empresa
+    Obtener perfil de empresa
     
-    Según PARTE 3.2 del MD - GET /company/:company_id
+    Según PARTE 3.2 del MD - GET /companies/{company_id}
     """
-    client = SupabaseClient.get_client()
-    
     try:
-        response = client.table("companies").select("*").eq("id", company_id).execute()
+        client = SupabaseClient.get_client(use_service_role=True)
         
-        if not response.data:
+        result = client.table("companies").select("*").eq("id", company_id).execute()
+        
+        if not result.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Company not found"
             )
         
-        return response.data[0]
-    
+        company = result.data[0]
+        
+        return CompanyResponse(
+            id=company["id"],
+            name=company["name"],
+            email=company["email"],
+            sector=company.get("sector"),
+            size=company.get("size"),
+            country=company.get("country"),
+            description=company.get("description"),
+            logo_url=company.get("logo_url"),
+            whatsapp_number=company.get("whatsapp_number"),
+            created_at=company["created_at"]
+        )
+        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving company: {str(e)}"
+            detail=f"Error fetching company: {str(e)}"
         )
 
 
-@router.put("/{company_id}", response_model=CompanyResponse)
+@router.put("/{company_id}")
 async def update_company(
     company_id: str,
     request: UpdateCompanyRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """
-    Actualizar empresa
+    Actualizar perfil de empresa
     
-    Según PARTE 3.2 del MD - PUT /company/:company_id
+    Según PARTE 3.2 del MD - PUT /companies/{company_id}
     """
-    # Verificar que sea el dueño
-    if current_user.get("sub") != company_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized"
-        )
-    
-    client = SupabaseClient.get_client()
-    
     try:
-        # Preparar datos a actualizar
+        # Verificar que el usuario actual sea de esta empresa
+        if current_user.get("sub") != company_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to update this company"
+            )
+        
+        client = SupabaseClient.get_client(use_service_role=True)
+        
+        # Preparar datos para actualizar (solo campos no None)
         update_data = {}
         if request.description is not None:
             update_data["description"] = request.description
@@ -70,18 +82,27 @@ async def update_company(
         if request.logo_url is not None:
             update_data["logo_url"] = request.logo_url
         
-        update_data["updated_at"] = "now()"
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No fields to update"
+            )
         
-        response = client.table("companies").update(update_data).eq("id", company_id).execute()
+        # Actualizar
+        result = client.table("companies").update(update_data).eq("id", company_id).execute()
         
-        if not response.data:
+        if not result.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Company not found"
             )
         
-        return response.data[0]
-    
+        return {
+            "success": True,
+            "message": "Company updated successfully",
+            "data": result.data[0]
+        }
+        
     except HTTPException:
         raise
     except Exception as e:

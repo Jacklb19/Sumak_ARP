@@ -1,8 +1,9 @@
+# app/api/routes/auth.py
 from fastapi import APIRouter, HTTPException, status
 from app.models.schemas import RegisterCompanyRequest, LoginRequest, TokenResponse
 from app.services.auth_service import AuthService
 
-router = APIRouter()
+router = APIRouter()  # ✅ Esta es la línea que faltaba
 auth_service = AuthService()
 
 

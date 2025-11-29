@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import (
     GenerateOnboardingRequest, GenerateOnboardingResponse,
     SendOnboardingRequest, SendOnboardingResponse
@@ -18,40 +18,46 @@ async def generate_onboarding(
     request: GenerateOnboardingRequest,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    """
-    Generar email de onboarding (PARTE 3.2 - POST /onboarding/generate)
-    """
-    client = SupabaseClient.get_client()
-    
+    client = SupabaseClient.get_client(use_service_role=True)
+
     try:
-        # Recuperar datos
         app_response = client.table("applications").select(
-            "*, candidates(full_name, email)"
+            "candidate_id"
         ).eq("id", request.application_id).execute()
-        
+
         if not app_response.data:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=404,
                 detail="Application not found"
             )
-        
-        app = app_response.data[0]
-        
-        # Generar email
+
+        candidate_id = app_response.data[0]["candidate_id"]
+
+        cand_resp = client.table("candidates").select(
+            "full_name, email"
+        ).eq("id", candidate_id).execute()
+
+        if not cand_resp.data:
+            raise HTTPException(
+                status_code=404,
+                detail="Candidate not found"
+            )
+
+        candidate = cand_resp.data[0]
+
         email_data = await llm_service.generate_onboarding_email(
-            candidate_name=app["candidates"]["full_name"],
+            candidate_name=candidate["full_name"],
             job_title=request.job_info.get("title", ""),
             company_name=request.company_info.get("name", ""),
             start_date=str(datetime.now().date()),
-            first_day_checklist=request.first_day_checklist,
-            goals_30_60_90=request.goals_30_60_90
+            first_day_checklist=request.first_day_checklist or [],
+            goals_30_60_90=request.goals_30_60_90 or {}
         )
-        
-        # Guardar template
+
         template_response = client.table("onboarding_templates").insert({
             "application_id": request.application_id,
-            "recipient_email": app["candidates"]["email"],
-            "recipient_name": app["candidates"]["full_name"],
+            "recipient_email": candidate["email"],
+            "recipient_name": candidate["full_name"],
             "subject": email_data["subject"],
             "body": email_data["body"],
             "status": "generated",
@@ -59,22 +65,24 @@ async def generate_onboarding(
             "job_title": request.job_info.get("title"),
             "start_date": str(datetime.now().date())
         }).execute()
-        
-        return {
-            "success": True,
-            "onboarding_template_id": template_response.data[0]["id"],
-            "email_preview": {
+
+        template_id = template_response.data[0]["id"]
+
+        return GenerateOnboardingResponse(
+            success=True,
+            onboarding_template_id=template_id,
+            email_preview={
                 "subject": email_data["subject"],
                 "body": email_data["body"]
             },
-            "recipient_email": app["candidates"]["email"]
-        }
-        
+            recipient_email=candidate["email"]
+        )
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=str(e)
         )
 
@@ -84,38 +92,32 @@ async def send_onboarding(
     request: SendOnboardingRequest,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    """
-    Enviar email de onboarding (PARTE 3.2 - POST /onboarding/send)
-    """
-    client = SupabaseClient.get_client()
-    
+    client = SupabaseClient.get_client(use_service_role=True)
+
     try:
-        # Actualizar status
         response = client.table("onboarding_templates").update({
             "status": "sent",
             "sent_at": datetime.utcnow().isoformat()
         }).eq("id", request.onboarding_template_id).execute()
-        
+
         if not response.data:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=404,
                 detail="Template not found"
             )
-        
+
         template = response.data[0]
-        
-        # TODO: Enviar email real con SendGrid
-        
-        return {
-            "success": True,
-            "sent_at": datetime.utcnow(),
-            "recipient": template["recipient_email"]
-        }
-        
+
+        return SendOnboardingResponse(
+            success=True,
+            sent_at=datetime.utcnow(),
+            recipient=template["recipient_email"]
+        )
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=str(e)
         )
