@@ -1,16 +1,17 @@
-from fastapi import APIRouter as ScoringRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends
 from app.models.schemas import (
     CalculateCVScoreRequest, CVScoreResponse,
     CalculateGlobalScoreRequest, GlobalScoreResponse
 )
+from app.core.security import get_current_user
 from app.services.scoring_service import ScoringService
 from typing import Dict, Any
 
-scoring_router = ScoringRouter()
+router = APIRouter()
 scoring_service = ScoringService()
 
 
-@scoring_router.post("/calculate-cv-score", response_model=CVScoreResponse)
+@router.post("/calculate-cv-score", response_model=CVScoreResponse)
 async def calculate_cv_score(
     request: CalculateCVScoreRequest,
     current_user: Dict[str, Any] = Depends(get_current_user)
@@ -33,7 +34,7 @@ async def calculate_cv_score(
         )
 
 
-@scoring_router.post("/calculate-global-score", response_model=GlobalScoreResponse)
+@router.post("/calculate-global-score", response_model=GlobalScoreResponse)
 async def calculate_global_score(
     request: CalculateGlobalScoreRequest,
     current_user: Dict[str, Any] = Depends(get_current_user)

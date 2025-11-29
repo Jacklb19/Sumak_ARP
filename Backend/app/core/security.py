@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer
 from app.core.config import settings
 from typing import Optional, Dict, Any
 
@@ -66,7 +66,7 @@ def verify_token(token: str) -> Dict[str, Any]:
         )
 
 
-async def get_current_user(credentials: HTTPAuthCredentials = Depends(security)) -> Dict[str, Any]:
+async def get_current_user(credentials = Depends(security)) -> Dict[str, Any]:
     """
     Obtener usuario actual desde token
     """

@@ -1,4 +1,4 @@
-from fastapi import APIRouter as OnboardingRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends
 from app.models.schemas import (
     GenerateOnboardingRequest, GenerateOnboardingResponse,
     SendOnboardingRequest, SendOnboardingResponse
@@ -9,11 +9,11 @@ from app.core.supabase_client import SupabaseClient
 from typing import Dict, Any
 from datetime import datetime
 
-onboarding_router = OnboardingRouter()
-llm_service_onboarding = LLMService()
+router = APIRouter()
+llm_service = LLMService()
 
 
-@onboarding_router.post("/generate", response_model=GenerateOnboardingResponse)
+@router.post("/generate", response_model=GenerateOnboardingResponse)
 async def generate_onboarding(
     request: GenerateOnboardingRequest,
     current_user: Dict[str, Any] = Depends(get_current_user)
@@ -38,7 +38,7 @@ async def generate_onboarding(
         app = app_response.data[0]
         
         # Generar email
-        email_data = await llm_service_onboarding.generate_onboarding_email(
+        email_data = await llm_service.generate_onboarding_email(
             candidate_name=app["candidates"]["full_name"],
             job_title=request.job_info.get("title", ""),
             company_name=request.company_info.get("name", ""),
@@ -79,7 +79,7 @@ async def generate_onboarding(
         )
 
 
-@onboarding_router.post("/send", response_model=SendOnboardingResponse)
+@router.post("/send", response_model=SendOnboardingResponse)
 async def send_onboarding(
     request: SendOnboardingRequest,
     current_user: Dict[str, Any] = Depends(get_current_user)

@@ -1,15 +1,15 @@
-from fastapi import APIRouter as ChatRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends
 from app.models.schemas import AgentChatRequest, AgentChatResponse
 from app.core.security import get_current_user
 from app.services.llm_service import LLMService
 from app.core.supabase_client import SupabaseClient
 from typing import Dict, Any
 
-chat_router = ChatRouter()
-llm_service_chat = LLMService()
+router = APIRouter()
+llm_service = LLMService()
 
 
-@chat_router.post("/chat", response_model=AgentChatResponse)
+@router.post("/chat", response_model=AgentChatResponse)
 async def agent_chat(
     request: AgentChatRequest,
     current_user: Dict[str, Any] = Depends(get_current_user)
@@ -36,10 +36,14 @@ async def agent_chat(
             })
         
         # Llamar LLM
-        response_text = await llm_service_chat.analyze_candidates_for_recruiter(
-            job_title=client.table("job_postings").select("title").eq(
-                "id", request.job_posting_id
-            ).execute().data[0]["title"],
+        job_response = client.table("job_postings").select("title").eq(
+            "id", request.job_posting_id
+        ).execute()
+        
+        job_title = job_response.data[0]["title"] if job_response.data else "Unknown"
+        
+        response_text = await llm_service.analyze_candidates_for_recruiter(
+            job_title=job_title,
             candidates_data=candidates_data,
             question=request.question
         )

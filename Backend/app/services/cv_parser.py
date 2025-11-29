@@ -1,6 +1,6 @@
 import pdfplumber
 from fastapi import UploadFile, HTTPException, status
-from openai import OpenAI
+from groq import Groq 
 from app.core.config import settings
 from typing import Tuple, Optional
 
@@ -9,7 +9,7 @@ class CVParserService:
     """Servicio para parsear CVs y generar embeddings"""
 
     def __init__(self):
-        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.client = Groq(api_key=settings.GROQ_API_KEY)
 
     async def parse_cv_file(self, file: UploadFile) -> Tuple[str, list]:
         """
@@ -66,8 +66,8 @@ class CVParserService:
         # 3. Generar embedding con OpenAI
         try:
             embedding_response = self.client.embeddings.create(
-                model="text-embedding-3-small",
-                input=cv_text[:8000]  # Limitar a 8000 chars para no exceder tokens
+                model="text-embedding-3-small",  # Groq también tiene embeddings
+                input=cv_text[:8000]
             )
             embedding = embedding_response.data[0].embedding
             

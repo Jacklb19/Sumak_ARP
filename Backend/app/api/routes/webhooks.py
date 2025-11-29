@@ -1,12 +1,13 @@
-from fastapi import APIRouter as WebhookRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from app.models.schemas import InterviewStepRequest, InterviewStepResponse
 from app.core.supabase_client import SupabaseClient
 from typing import Dict, Any
+from datetime import datetime
 
-webhook_router = WebhookRouter()
+router = APIRouter()
 
 
-@webhook_router.post("/interview-step", response_model=InterviewStepResponse)
+@router.post("/interview-step", response_model=InterviewStepResponse)
 async def webhook_interview_step(request: InterviewStepRequest):
     """
     Recibir respuesta de candidato (PARTE 3.2 - POST /webhook/interview-step)
