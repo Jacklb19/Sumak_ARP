@@ -62,7 +62,7 @@ export default function ApplyPage() {
   const fetchJobDetail = async () => {
     setLoading(true)
     try {
-      const response = await apiClient.get(`/job-postings/${jobId}`)
+      const response = await apiClient.get(`/api/v1/job-postings/${jobId}`)
       setJob(response.data)
     } catch (err) {
       console.error("Error fetching job:", err)
@@ -71,44 +71,74 @@ export default function ApplyPage() {
       setLoading(false)
     }
   }
+const [candidate, setCandidate] = useState<{
+  full_name: string
+  email: string
+  phone_number: string
+} | null>(null)
 
-  const onSubmit = async (data: ApplicationFormData) => {
-    if (!cvFile) {
-      setError("Debes subir tu CV")
-      return
-    }
-
-    setSubmitting(true)
-    setError("")
-
+useEffect(() => {
+  const fetchCandidate = async () => {
     try {
-      const formData = new FormData()
-      formData.append("job_posting_id", jobId)
-      formData.append("seniority_level", data.seniority_level)
-      formData.append("expected_salary", data.expected_salary.toString())
-      formData.append("linkedin_url", data.linkedin_url || "")
-      formData.append("github_url", data.github_url || "")
-      formData.append("cv_file", cvFile)
-      formData.append("consent_ai", "true")
-      formData.append("consent_data_storage", "true")
-
-      const response = await apiClient.post("/applications", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      const res = await apiClient.get("/api/v1/candidates/me")
+      setCandidate({
+        full_name: res.data.full_name,
+        email: res.data.email,
+        phone_number: res.data.phone_number,
       })
-
-      if (response.data.success) {
-        // Redirect to interview chat
-        router.push(`/dashboard/interview/${response.data.application_id}`)
-      }
-    } catch (err: any) {
-      console.error("Error submitting application:", err)
-      setError(err.response?.data?.message || "Error al enviar la postulación. Intenta nuevamente.")
-    } finally {
-      setSubmitting(false)
+      // si quieres, sincroniza también localStorage
+      localStorage.setItem("full_name", res.data.full_name)
+      localStorage.setItem("email", res.data.email)
+      localStorage.setItem("phone_number", res.data.phone_number)
+    } catch (e) {
+      console.error("Error fetching candidate:", e)
     }
   }
+  fetchCandidate()
+}, [])
+
+const onSubmit = async (data: ApplicationFormData) => {
+  if (!cvFile) {
+    setError("Debes subir tu CV")
+    return
+  }
+
+  if (!candidate) {
+    setError("No se pudo cargar la información del candidato")
+    return
+  }
+
+  setSubmitting(true)
+  setError("")
+
+  try {
+    const { full_name, email, phone_number } = candidate
+
+    const formData = new FormData()
+    formData.append("full_name", full_name)
+    formData.append("email", email)
+    formData.append("phone_number", phone_number)
+    formData.append("job_posting_id", jobId)
+    formData.append("cv_file", cvFile)
+    formData.append("consent_ai", "true")
+    formData.append("consent_data_storage", "true")
+    formData.append("seniority_level", data.seniority_level || "mid")
+    formData.append("expected_salary", (data.expected_salary || 0).toString())
+    formData.append("country", "")
+    formData.append("city", "")
+
+    const response = await apiClient.post("/api/v1/applications/", formData)
+
+    if (response.data.success) {
+      router.push(`/dashboard/interview/${response.data.application_id}`)
+    }
+  } catch (err: any) {
+    // manejo de errores igual que ya tienes
+  } finally {
+    setSubmitting(false)
+  }
+}
+
 
   if (loading) {
     return (

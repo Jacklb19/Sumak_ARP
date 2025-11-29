@@ -10,6 +10,8 @@ import httpx
 from app.core.config import settings
 from app.core.supabase_client import SupabaseClient
 from app.api.routes.candidates import decode_token
+import traceback
+
 
 # Gestión de conexiones activas
 active_connections: Dict[str, WebSocket] = {}
@@ -86,90 +88,125 @@ class InterviewWebSocketManager:
     
     @staticmethod
     async def call_langgraph(application_id: str, candidate_message: str) -> dict:
-        """
-        Llamar a LangGraph para procesar mensaje y obtener respuesta
-        """
         client = SupabaseClient.get_client(use_service_role=True)
-        
+
         try:
-            # Obtener contexto de la aplicación
-            app_response = client.table("applications")\
-                .select("""
-                    *,
-                    job_postings(*, companies(*)),
-                    candidates(*)
-                """)\
-                .eq("id", application_id)\
-                .execute()
-            
-            if not app_response.data:
+            # 1. Cargar application + candidate + job_posting
+            app_resp = client.table("applications").select("*").eq("id", application_id).execute()
+            if not app_resp.data:
                 raise Exception("Application not found")
-            
-            app_data = app_response.data[0]
-            
-            # Obtener historial de mensajes
-            messages_response = client.table("interview_messages")\
+
+            app_row = app_resp.data[0]
+
+            cand_resp = client.table("candidates").select("*").eq("id", app_row["candidate_id"]).execute()
+            candidate = cand_resp.data[0] if cand_resp.data else {}
+
+            job_resp = client.table("job_postings").select("*").eq("id", app_row["job_posting_id"]).execute()
+            job = job_resp.data[0] if job_resp.data else {}
+
+            # 2. Historial de mensajes (lo adaptamos a roles)
+            msgs_resp = client.table("interview_messages")\
                 .select("*")\
                 .eq("application_id", application_id)\
                 .order("order_index")\
                 .execute()
-            
-            conversation_history = [
-                {
-                    "sender": msg["sender"],
-                    "text": msg["message_text"],
-                    "category": msg.get("question_category")
-                }
-                for msg in messages_response.data or []
-            ]
-            
-            # Payload para LangGraph
+
+            conversation_history = []
+            for msg in msgs_resp.data or []:
+                role = msg["sender"]  # "agent" | "candidate"
+
+                cat = msg.get("question_category") or "knockout"
+                if cat not in ("knockout", "technical", "soft_skills", "closing"):
+                    cat = "knockout"
+
+                idx = msg.get("order_index") or 0
+                if idx < 0:
+                    idx = 0
+
+                conversation_history.append({
+                    "role": role,
+                    "content": msg["message_text"],
+                    "timestamp": msg.get("timestamp") or datetime.utcnow().isoformat(),
+                    "category": cat,
+                    "order_index": idx,
+                })
+
+
+            # 3. Construir interview_state compatible con LangGraph
+            interview_state = {
+                "job_posting_id": app_row["job_posting_id"],
+                "candidate_id": app_row["candidate_id"],
+                "current_phase": app_row.get("current_phase", "knockout"),
+                "completed_phases": app_row.get("completed_phases", []),
+                "conversation_history": conversation_history,
+                "knockout_scores": app_row.get("knockout_scores", []),
+                "technical_scores": app_row.get("technical_scores", []),
+                "soft_skills_scores": app_row.get("soft_skills_scores", []),
+                # Opcional: contador de fases
+                "phase_counter": app_row.get("phase_counter"),
+            }
+
+            MAX_CV_CONTEXT = 1000  # o el número que quieras
+
+
+            if job.get("description"):
+                conversation_history.insert(0, {
+                    "role": "agent",
+                    "content": f"Contexto del puesto: {job.get('title','')}\n{job['description']}",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "category": "knockout",  # usar una categoría válida
+                    "order_index": 0,
+                })
+
+            if candidate.get("cv_text_extracted"):
+                conversation_history.insert(1, {
+                    "role": "agent",
+                    "content": f"Contexto del CV del candidato:\n{candidate['cv_text_extracted'][:MAX_CV_CONTEXT]}",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "category": "knockout",  # también knockout para el contexto inicial
+                    "order_index": 1,
+                })
+
             payload = {
                 "application_id": application_id,
                 "candidate_message": candidate_message,
-                "interview_state": {
-                    "job_context": {
-                        "title": app_data["job_postings"]["title"],
-                        "description": app_data["job_postings"]["description"],
-                        "required_skills": app_data["job_postings"].get("required_skills", {}),
-                    },
-                    "candidate_context": {
-                        "name": app_data["candidates"]["full_name"],
-                        "email": app_data["candidates"]["email"],
-                    },
-                    "conversation_history": conversation_history,
-                    "current_phase": app_data.get("current_phase", "knockout"),
-                }
+                "interview_state": interview_state,
             }
-            
-            # Llamar a LangGraph
+
             async with httpx.AsyncClient(timeout=30.0) as http_client:
-                response = await http_client.post(
-                    f"{settings.LANGGRAPH_URL}/interview-step",
-                    json=payload
-                )
-                
+                url = f"{settings.LANGGRAPH_URL}/interview-step"
+                print("DEBUG LangGraph URL:", url)
+                print("DEBUG LangGraph payload sample:", {
+                    "application_id": payload["application_id"],
+                    "candidate_message": payload["candidate_message"],
+                    "interview_state_keys": list(payload["interview_state"].keys()),
+                })
+
+                response = await http_client.post(url, json=payload)
+                print("DEBUG LangGraph status:", response.status_code)
+                print("DEBUG LangGraph body:", response.text[:400])
+
                 if response.status_code == 200:
                     return response.json()
                 else:
-                    # Fallback: respuesta simple si LangGraph falla
+                    print("DEBUG non-200 from LangGraph, using fallback")
                     return {
                         "should_continue": True,
-                        "next_question": f"Gracias por tu respuesta. ¿Puedes contarme más sobre tu experiencia?",
+                        "next_question": "Gracias por tu respuesta. ¿Puedes contarme más sobre tu experiencia?",
                         "phase": "technical",
-                        "score": None
+                        "score": None,
                     }
-        
+
         except Exception as e:
-            print(f"Error calling LangGraph: {str(e)}")
-            # Fallback response
+            print("Error calling LangGraph:", str(e))
             return {
                 "should_continue": True,
                 "next_question": "Gracias. ¿Puedes elaborar más sobre eso?",
                 "phase": "technical",
-                "score": None
+                "score": None,
             }
-    
+
+
     @staticmethod
     async def update_application_status(application_id: str, new_status: str):
         """Actualizar estado de la aplicación"""
@@ -349,7 +386,8 @@ async def interview_websocket_endpoint(
             del active_connections[application_id]
     
     except Exception as e:
-        print(f"WebSocket error: {str(e)}")
+        print("===== WebSocket exception =====")
+        traceback.print_exc()
         try:
             await websocket.send_json({
                 "type": "error",
@@ -359,4 +397,4 @@ async def interview_websocket_endpoint(
         except:
             pass
         if application_id in active_connections:
-            del active_connections[application_id]
+            del active_connections[application_id]  

@@ -21,7 +21,7 @@ export function useAuth() {
     }
 
     try {
-      const response = await apiClient.get("/auth/me")
+      const response = await apiClient.get("/api/v1/candidates/me")
       setUser(response.data)
     } catch (error) {
       console.error("Auth check failed:", error)

@@ -62,12 +62,13 @@ export default function InterviewPage() {
 
   const fetchApplicationDetails = async () => {
     try {
-      const response = await apiClient.get(`/applications/${applicationId}`)
+      const response = await apiClient.get(`/api/v1/applications/${applicationId}`)
       setApplication(response.data)
     } catch (error) {
       console.error("[v0] Error fetching application:", error)
     }
   }
+
 
   const handleWebSocketOpen = () => {
     console.log("[v0] WebSocket connected successfully")

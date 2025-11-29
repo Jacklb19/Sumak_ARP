@@ -32,7 +32,7 @@ export function LoginForm() {
     setError("")
 
     try {
-      const response = await apiClient.post("/auth/login-candidate", data)
+      const response = await apiClient.post("/api/v1/candidates/login-candidate", data)
 
       if (response.data.success) {
         localStorage.setItem("auth_token", response.data.token)

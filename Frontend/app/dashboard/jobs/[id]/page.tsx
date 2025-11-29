@@ -33,7 +33,7 @@ export default function JobDetailPage() {
     setError("")
 
     try {
-      const response = await apiClient.get(`/job-postings/${jobId}`)
+      const response = await apiClient.get(`/api/v1/job-postings/${jobId}`)
       setJob(response.data)
     } catch (err: any) {
       console.error("Error fetching job detail:", err)

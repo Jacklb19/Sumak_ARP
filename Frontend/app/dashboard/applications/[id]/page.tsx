@@ -33,7 +33,7 @@ export default function ApplicationDetailPage() {
     setError("")
 
     try {
-      const response = await apiClient.get(`/applications/${applicationId}`)
+      const response = await apiClient.get(`/api/v1/applications/${applicationId}`)
       setApplication(response.data)
     } catch (err: any) {
       console.error("Error fetching application detail:", err)

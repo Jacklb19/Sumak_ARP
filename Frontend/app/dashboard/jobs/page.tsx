@@ -29,7 +29,7 @@ export default function JobsPage() {
     setError("")
 
     try {
-      const response = await apiClient.get("/job-postings", {
+      const response = await apiClient.get("/api/v1/job-postings", {
         params: {
           status: "published",
           limit: 50,

@@ -28,7 +28,7 @@ export default function ApplicationsPage() {
     setError("")
 
     try {
-      const response = await apiClient.get("/applications/my-applications")
+      const response = await apiClient.get("/api/v1/candidates/my-applications")
       setApplications(response.data.applications || [])
     } catch (err: any) {
       console.error("Error fetching applications:", err)

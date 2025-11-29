@@ -39,23 +39,42 @@ async def create_application(
     def parse_bool(value: str) -> bool:
         return value.lower() in ["true", "1", "yes", "y", "on"]
 
+    # DEBUG: log de entrada
+    print("\n===== DEBUG create_application START =====")
+    print("full_name:", full_name)
+    print("email:", email)
+    print("phone_number:", phone_number)
+    print("job_posting_id:", job_posting_id)
+    print("country:", country)
+    print("city:", city)
+    print("seniority_level:", seniority_level)
+    print("expected_salary:", expected_salary)
+    print("consent_ai:", consent_ai)
+    print("consent_data_storage:", consent_data_storage)
+    print("cv_file:", cv_file.filename if cv_file else None)
+
     if not parse_bool(consent_ai) or not parse_bool(consent_data_storage):
+        print("DEBUG: consent failed")
         raise HTTPException(
             status_code=400,
             detail="Consent is required"
         )
 
-    # Usa service_role para evitar problemas de RLS
     client = SupabaseClient.get_client(use_service_role=True)
 
     try:
-        # 1. Parsear CV (texto + embedding)
+        # 1. Parsear CV
+        print("DEBUG: before cv_parser.parse_cv_file")
         cv_text, cv_embedding = await cv_parser.parse_cv_file(cv_file)
+        print("DEBUG: after cv_parser, text_len:", len(cv_text))
 
-        # 2. Obtener company_id de la vacante
+        # 2. Obtener company_id
+        print("DEBUG: fetching job_posting company_id")
         job_resp = client.table("job_postings").select("company_id").eq(
             "id", job_posting_id
         ).execute()
+        print("DEBUG job_resp.data:", job_resp.data)
+
         if not job_resp.data:
             raise HTTPException(
                 status_code=404,
@@ -63,18 +82,23 @@ async def create_application(
             )
         company_id = job_resp.data[0]["company_id"]
 
-        # 3. Crear/actualizar candidato (upsert por email)
-        candidate_response = client.table("candidates").upsert({
-            "email": email,
-            "phone_number": phone_number,
-            "full_name": full_name,
-            "country": country,
-            "city": city,
-            "seniority_level": seniority_level,
-            "expected_salary": expected_salary,
-            "cv_text_extracted": cv_text,
-            #"cv_embedding": cv_embedding
-        }).execute()
+        # 3. Upsert candidato
+        print("DEBUG: upserting candidate")
+        candidate_response = client.table("candidates").upsert(
+            {
+                "email": email,
+                "phone_number": phone_number,
+                "full_name": full_name,
+                "country": country,
+                "city": city,
+                "seniority_level": seniority_level,
+                "expected_salary": expected_salary,
+                "cv_text_extracted": cv_text,
+                # "cv_embedding": cv_embedding
+            },
+            on_conflict="email",
+        ).execute()
+        print("DEBUG candidate_response.data:", candidate_response.data)
 
         if not candidate_response.data:
             raise HTTPException(
@@ -85,6 +109,7 @@ async def create_application(
         candidate_id = candidate_response.data[0]["id"]
 
         # 4. Crear application
+        print("DEBUG: inserting application")
         app_response = client.table("applications").insert({
             "candidate_id": candidate_id,
             "job_posting_id": job_posting_id,
@@ -92,6 +117,7 @@ async def create_application(
             "status": "pending",
             "cv_file_url": f"cvs/{candidate_id}/{job_posting_id}.pdf"
         }).execute()
+        print("DEBUG app_response.data:", app_response.data)
 
         if not app_response.data:
             raise HTTPException(
@@ -101,6 +127,7 @@ async def create_application(
 
         application_id = app_response.data[0]["id"]
 
+        print("===== DEBUG create_application OK =====\n")
         return {
             "success": True,
             "application_id": application_id,
@@ -110,12 +137,20 @@ async def create_application(
         }
 
     except HTTPException:
+        # ya tiene mensaje claro, solo logueamos
+        import traceback
+        print("===== HTTPException in create_application =====")
+        traceback.print_exc()
         raise
     except Exception as e:
+        import traceback
+        print("===== EXCEPTION in create_application =====")
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Error creating application: {str(e)}"
         )
+
 
 
 @router.get("/{application_id}", response_model=ApplicationResponse)

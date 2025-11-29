@@ -37,7 +37,7 @@ export function RegisterForm() {
     setError("")
 
     try {
-      const response = await apiClient.post("/auth/register-candidate", {
+      const response = await apiClient.post("/api/v1/candidates/register-candidate", {
         full_name: data.full_name,
         email: data.email,
         phone_number: data.phone_number,
