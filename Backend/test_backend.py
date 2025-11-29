@@ -343,7 +343,6 @@ def test_publish_job_posting():
         print_test("Publish Job", False, str(e))
         return False
 
-
 def test_create_application():
     """TEST 11: Create application with CV"""
     if not state["job_id"]:
@@ -371,8 +370,21 @@ def test_create_application():
             f"{API_V1}/applications/",
             files=files,
             data=data,
-            timeout=30  # CV parsing tarda
+            timeout=30
         )
+        
+        # ✅ DEBUG COMPLETO
+        if response.status_code != 200:
+            print(f"\n{Color.RED}=== ERROR DEBUG ==={Color.END}")
+            print(f"{Color.YELLOW}Status Code:{Color.END} {response.status_code}")
+            try:
+                error_json = response.json()
+                print(f"{Color.YELLOW}Response JSON:{Color.END}")
+                print(json.dumps(error_json, indent=2))
+            except:
+                print(f"{Color.YELLOW}Response Text:{Color.END}")
+                print(response.text)
+            print(f"{Color.RED}=================={Color.END}\n")
         
         passed = response.status_code == 200
         
@@ -386,7 +398,11 @@ def test_create_application():
         return passed
     except Exception as e:
         print_test("Create Application (CV parsing)", False, str(e))
+        import traceback
+        print(f"\n{Color.RED}Exception Traceback:{Color.END}")
+        traceback.print_exc()
         return False
+    
 
 
 def test_get_application():
@@ -526,7 +542,6 @@ def test_agent_chat():
         print_test("Agent Chat (Groq analysis)", False, str(e))
         return False
 
-
 def test_generate_onboarding():
     """TEST 17: Generate onboarding (Groq email generation)"""
     if not state["token"] or not state["application_id"]:
@@ -548,6 +563,19 @@ def test_generate_onboarding():
             json=payload,
             timeout=20
         )
+        
+        # ✅ DEBUG para ver qué pasa con el 422
+        if response.status_code != 200:
+            print(f"\n{Color.RED}=== ONBOARDING ERROR DEBUG ==={Color.END}")
+            print(f"{Color.YELLOW}Status Code:{Color.END} {response.status_code}")
+            try:
+                error_json = response.json()
+                print(f"{Color.YELLOW}Response JSON:{Color.END}")
+                print(json.dumps(error_json, indent=2))
+            except:
+                print(f"{Color.YELLOW}Response Text:{Color.END}")
+                print(response.text)
+            print(f"{Color.RED}=============================={Color.END}\n")
         
         passed = response.status_code == 200
         

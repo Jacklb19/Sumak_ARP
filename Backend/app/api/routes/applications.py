@@ -73,7 +73,7 @@ async def create_application(
             "seniority_level": seniority_level,
             "expected_salary": expected_salary,
             "cv_text_extracted": cv_text,
-            "cv_embedding": cv_embedding
+            #"cv_embedding": cv_embedding
         }).execute()
 
         if not candidate_response.data:

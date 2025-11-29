@@ -304,7 +304,7 @@ class GenerateOnboardingRequest(BaseModel):
     application_id: str
     company_info: Dict[str, Any]
     job_info: Dict[str, Any]
-    first_day_checklist: Optional[Dict[str, Any]] = None
+    first_day_checklist: Optional[List[str]] = None
     goals_30_60_90: Optional[Dict[str, Any]] = None
 
 
