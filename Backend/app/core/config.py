@@ -12,9 +12,9 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: str
     SUPABASE_SERVICE_ROLE_KEY: str
 
-    # OPENAI
-    OPENAI_API_KEY: str
-    OPENAI_MODEL: str = "gpt-4"
+    # GROQ 
+    GROQ_API_KEY: str
+    GROQ_MODEL: str = "llama-3.3-70b-specdec"
 
     # JWT & SECURITY
     SECRET_KEY: str
